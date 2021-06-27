@@ -4,6 +4,55 @@
 #
 version: 2.1
 jobs:
+  analyze:
+    docker:
+      - image: cimg/openjdk:15.0.2
+
+    description: Run Sonarqube scanner for code analysis
+    parameters:
+      organization:
+        type: string
+    host_url:
+      type: string
+    login:
+      type: string
+    projectKey:
+      type: string
+    projectBaseDir:
+      type: string
+      default: /root/circleci-build
+    sources:
+      type: string
+      default: .
+    github_oauth:
+      type: string
+    github_repository:
+      type: string
+    runner_opts:
+      type: string
+      default: '-Xms1024m -Xmx4096m'
+    exclusions:
+      type: string
+      default: '**/*.yaml,**/*.yml'
+    engine_version:
+      type: string
+      default: 4.2.0.1873
+    
+    steps:
+    - run:
+        name: Code analysis
+        command: |
+          export SONAR_RUNNER_OPTS="<< parameters.runner_opts >>"
+          eval ./sonar-scanner-<< parameters.engine_version >>/bin/sonar-scanner \
+          -Dsonar.organization=${<< parameters.organization >>} \
+          -Dsonar.host.url=${<< parameters.host_url >>} \
+          -Dsonar.login=${<< parameters.login >>} \
+          -Dsonar.projectKey=${<< parameters.projectKey >>} \
+          -Dsonar.projectBaseDir=<< parameters.projectBaseDir >> \
+          -Dsonar.sources=<< parameters.sources >> \
+          -Dsonar.github.oauth=${<< parameters.github_oauth >>} \
+          -Dsonar.github.repository=${<< parameters.github_repository >>} \
+          -Dsonar.exclusions="<< parameters.exclusions >>"
   build:
     docker:
       - image: cimg/openjdk:15.0.2
@@ -59,8 +108,9 @@ jobs:
 
 
 workflows:
-  build-test-validate-deploy:
+  analyze-build-test-validate-deploy:
     jobs:
+      - analyze
       - build
       - test:
           requires:
